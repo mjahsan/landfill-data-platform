@@ -23,7 +23,7 @@ def generate_transactions(n=500):
         rate = random.uniform(10, 50)
 
         data.append({
-            "transaction_id": f"TI_{_+1}",
+            "transaction_id": str(uuid.uuid4()),
             "site_id": f"SITE_{random.randint(1,5)}",
             "transaction_datetime": random_past_datetime(),
             "vehicle_id": f"VEH_{random.randint(1,50)}",

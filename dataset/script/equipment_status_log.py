@@ -27,7 +27,7 @@ def generate_equipment_status_log(n=200):
     
     for _ in range(n):
         data.append({
-            "status_event_id": f"EV_{_+1}",
+            "status_event_id": str(uuid.uuid4()),
             "equipment_id": random.choice(equipment_ids),
             "status": random.choice(statuses),
             "recorded_at": random_past_datetime(),

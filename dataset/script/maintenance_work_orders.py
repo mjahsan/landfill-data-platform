@@ -29,7 +29,7 @@ def generate_work_orders(n=100):
         closed = opened + timedelta(days=random.randint(1,10)) if random.random() > 0.3 else None
 
         data.append({
-            "work_order_id": f"WID_{_+1}",
+            "work_order_id": str(uuid.uuid4()),
             "equipment_id": random.choice(equipment_ids),
             "work_order_type": random.choice(["PREVENTIVE", "CORRECTIVE", "EMERGENCY"]),
             "opened_date": opened.date(),
