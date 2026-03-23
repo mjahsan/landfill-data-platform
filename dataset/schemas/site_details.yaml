@@ -1,0 +1,27 @@
+table_name: bronze.site_dim
+type: dimension
+
+primary_key:
+  - site_id
+
+incremental_column: _ingested_at
+
+columns:
+  - name: site_id
+    type: string
+    nullable: false
+
+  - name: site_name
+    type: string
+
+  - name: state
+    type: string
+
+  - name: permit_capacity_tons_daily
+    type: decimal
+
+  - name: current_airspace_remaining_tons
+    type: decimal
+
+  - name: _ingested_at
+    type: timestamp
