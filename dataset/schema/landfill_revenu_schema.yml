@@ -1,0 +1,188 @@
+project: Landfill Revenue & Operations
+description: >
+  Schema for a landfill management operational database.
+  Tracks daily waste transactions, customer and vehicle master data,
+  landfill capacity, and end-of-day pipeline-updated operational metrics.
+
+database: postgresql
+schema_version: "1.0"
+
+tables:
+
+  customers:
+    description: Master table for customers who bring waste to the landfill.
+    type: dimension
+    updated_by: manual / onboarding pipeline
+    columns:
+      customer_id:
+        type: SERIAL
+        primary_key: true
+      customer_name:
+        type: VARCHAR(120)
+        nullable: false
+      customer_type:
+        type: VARCHAR(50)
+        description: e.g. Municipal, Commercial, Industrial, Individual
+      contact_number:
+        type: VARCHAR(20)
+      email:
+        type: VARCHAR(100)
+      address:
+        type: TEXT
+      registered_on:
+        type: DATE
+
+  vehicles:
+    description: Master table for vehicles registered to deliver waste.
+    type: dimension
+    updated_by: manual / onboarding pipeline
+    columns:
+      vehicle_id:
+        type: SERIAL
+        primary_key: true
+      vehicle_number:
+        type: VARCHAR(30)
+        nullable: false
+        unique: true
+      vehicle_type:
+        type: VARCHAR(60)
+        description: e.g. Compactor Truck, Tipper Truck, Mini Loader
+      owner_customer_id:
+        type: INT
+        foreign_key: customers.customer_id
+      capacity_tons:
+        type: NUMERIC(8,2)
+        description: Max load capacity of the vehicle in tons
+
+  landfill_master:
+    description: >
+      Static reference table for each landfill site.
+      Holds fixed/licensed values that do not change day to day.
+    type: dimension
+    updated_by: manual
+    columns:
+      landfill_id:
+        type: SERIAL
+        primary_key: true
+      site_name:
+        type: VARCHAR(120)
+        nullable: false
+      location:
+        type: VARCHAR(150)
+      region:
+        type: VARCHAR(80)
+      operating_since:
+        type: DATE
+      licensed_capacity_tons:
+        type: NUMERIC(12,2)
+        description: Total approved capacity of the landfill site
+      operator_name:
+        type: VARCHAR(100)
+      compliance_status:
+        type: VARCHAR(30)
+        default: Compliant
+        description: e.g. Compliant, Under Review, Non-Compliant
+
+  transactions:
+    description: >
+      Core fact table. One row per waste drop-off event.
+      Appended continuously throughout the day.
+    type: fact
+    updated_by: daily ingestion pipeline
+    columns:
+      transaction_id:
+        type: SERIAL
+        primary_key: true
+      landfill_id:
+        type: INT
+        foreign_key: landfill_master.landfill_id
+        nullable: false
+      customer_id:
+        type: INT
+        foreign_key: customers.customer_id
+        nullable: false
+      vehicle_id:
+        type: INT
+        foreign_key: vehicles.vehicle_id
+      transaction_date:
+        type: DATE
+        nullable: false
+      transaction_time:
+        type: TIME
+        nullable: false
+      waste_category:
+        type: VARCHAR(80)
+        description: e.g. Municipal Solid Waste, Construction & Demolition, Organic
+      incoming_weight_tons:
+        type: NUMERIC(8,3)
+        nullable: false
+      charge_per_ton:
+        type: NUMERIC(8,2)
+      total_charge:
+        type: NUMERIC(12,2)
+        description: incoming_weight_tons * charge_per_ton
+      payment_status:
+        type: VARCHAR(20)
+        description: e.g. Paid, Pending, Waived
+
+  landfill_operational_status:
+    description: >
+      Updated at end of each day by the pipeline.
+      Tracks the current remaining space and cumulative usage per landfill.
+    type: operational_metric
+    updated_by: end-of-day pipeline (upsert)
+    columns:
+      status_id:
+        type: SERIAL
+        primary_key: true
+      landfill_id:
+        type: INT
+        foreign_key: landfill_master.landfill_id
+        unique: true
+        description: One active row per landfill site
+      last_updated_date:
+        type: DATE
+        nullable: false
+      total_capacity_tons:
+        type: NUMERIC(12,2)
+      used_capacity_tons:
+        type: NUMERIC(12,2)
+      remaining_capacity_tons:
+        type: NUMERIC(12,2)
+      utilization_pct:
+        type: NUMERIC(5,2)
+        description: (used_capacity_tons / total_capacity_tons) * 100
+
+  landfill_alerts:
+    description: >
+      Alert log updated by the pipeline when a landfill crosses
+      a defined capacity threshold. Used to notify stakeholders.
+    type: operational_metric
+    updated_by: end-of-day pipeline (insert on threshold breach)
+    columns:
+      alert_id:
+        type: SERIAL
+        primary_key: true
+      landfill_id:
+        type: INT
+        foreign_key: landfill_master.landfill_id
+      alert_date:
+        type: DATE
+        nullable: false
+      utilization_pct_at_alert:
+        type: NUMERIC(5,2)
+        description: Utilization % at the time the alert was triggered
+      threshold_pct:
+        type: NUMERIC(5,2)
+        default: 80.00
+        description: The threshold that was breached to trigger this alert
+      alert_level:
+        type: VARCHAR(20)
+        description: e.g. Warning (80%), Critical (90%), Full (100%)
+      alert_message:
+        type: TEXT
+        description: Human-readable alert description
+      is_acknowledged:
+        type: BOOLEAN
+        default: false
+        description: Whether a stakeholder has acknowledged this alert
