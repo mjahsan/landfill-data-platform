@@ -34,3 +34,6 @@ data_generator/output/
 #replacement files
 replacements.txt
 
+#environmental variables
+environ_var/
+
