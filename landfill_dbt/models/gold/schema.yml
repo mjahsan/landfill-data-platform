@@ -1,0 +1,40 @@
+version: 2
+
+models:
+
+  - name: fact_transactions
+    columns:
+
+      - name: transaction_id
+        tests:
+          - not_null
+          - unique
+
+      - name: customer_id
+        tests:
+          - not_null
+          - relationships:
+              to: ref('dim_customers')
+              field: customer_id
+
+      - name: landfill_id
+        tests:
+          - relationships:
+              to: ref('dim_landfill')
+              field: landfill_id
+
+  - name: dim_customers
+    columns:
+
+      - name: customer_id
+        tests:
+          - unique
+          - not_null
+
+  - name: dim_landfill
+    columns:
+
+      - name: landfill_id
+        tests:
+          - unique
+          - not_null
