@@ -3,9 +3,11 @@ version: 2
 models:
 
   - name: fact_transactions
+    description: "Fact table containing all landfill transactions"
     columns:
 
       - name: transaction_id
+        description: "Unique Transaction identifier"
         tests:
           - not_null
           - unique
