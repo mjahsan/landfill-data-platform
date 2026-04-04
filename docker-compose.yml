@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+
+  postgres:
+    image: postgres:13
+    container_name: airflow-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  airflow:
+    image: landfill-airflow
+    container_name: landfill-airflow
+    depends_on:
+      - postgres
+    ports:
+      - "8080:8080"
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://airflow:airflow@postgres/airflow
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/plugins:/opt/airflow/plugins
+      - ~/.dbt:/home/airflow/.dbt
+    command: >
+      bash -c "
+      airflow db init &&
+      airflow webserver &
+      airflow scheduler
+      "
+
+  dbt:
+    image: landfill-dbt
+    container_name: landfill-dbt
+    volumes:
+      - ./landfill_dbt:/app
+      - ~/.dbt:/root/.dbt
+
+volumes:
+  postgres-db-volume:
